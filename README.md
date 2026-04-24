@@ -462,26 +462,6 @@ In HTTP mode, clients can pass API keys per-request via the `key` field in tool 
 
 ---
 
-## Confidence Scoring
-
-Every address verification produces a confidence score between 0 and 1, computed from the AVC code returned by Loqate.
-
-```
-confidence = base(verification_status, post_match_level)
-           × (1 - 0.5 × (1 - matchscore / 100))
-           → capped at 0.99
-```
-
-| Scenario | Confidence |
-|----------|:---:|
-| Clean US address (V4, ms=100) | **0.95** |
-| Messy UK address (P4, ms=100) | **0.70** |
-| Fake/unverifiable address | **0.03** |
-| German address (V4, ms=85) | **0.88** |
-| Missing house number (P3, ms=100) | **0.55** |
-
----
-
 ## Exit Codes
 
 Designed for scripting and CI/CD:
