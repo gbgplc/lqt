@@ -147,7 +147,7 @@ lqt verify [flags]
 | `--policy-file` | | Path to custom policy JSON file |
 | `--batch` | `-b` | CSV/TSV/pipe-delimited file path (or `-` for stdin) |
 | `--delimiter` | `-d` | Batch delimiter: `comma`, `tab`, `pipe` (auto-detected if omitted) |
-| `--output` | `-o` | Output format: `json`, `table` |
+| `--output` | `-o` | Output format: `json`, `jsonl`, `table` |
 | `--summary` | `-s` | Show batch summary statistics |
 | `--field` | | Extra Loqate input field `Key=Value` (repeatable) |
 | `--option` | | Loqate API option `Key=Value` (repeatable, dot notation for nesting) |
@@ -197,7 +197,7 @@ lqt parse [flags]
 | `--country` | `-c` | ISO 2-letter country code hint |
 | `--batch` | `-b` | CSV/TSV/pipe-delimited file path (or `-` for stdin) |
 | `--delimiter` | `-d` | Batch delimiter: `comma`, `tab`, `pipe` (auto-detected if omitted) |
-| `--output` | `-o` | Output format: `json`, `table` |
+| `--output` | `-o` | Output format: `json`, `jsonl`, `table` |
 | `--jsonl` | | JSON Lines output |
 | `--no-color` | | Disable color output |
 | `--anthropic-key` | | Anthropic API key (overrides env) |
