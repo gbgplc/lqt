@@ -542,5 +542,5 @@ $env:ANTHROPIC_API_KEY="your-key-here"
 ---
 
 <p align="center">
-  Built by the <a href="https://www.loqate.com">Loqate</a> team at <a href="https://www.gbg.com">GBG</a>.
+  Built by GBG Spark Labs in partnership with Team <a href="https://www.loqate.com">Loqate</a> at GBG.
 </p>
