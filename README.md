@@ -149,7 +149,7 @@ lqt verify [flags]
 | `--delimiter` | `-d` | Batch delimiter: `comma`, `tab`, `pipe` (auto-detected if omitted) |
 | `--output` | `-o` | Output format: `json`, `jsonl`, `table` |
 | `--summary` | `-s` | Show batch summary statistics |
-| `--field` | | Extra Loqate input field `Key=Value` (repeatable) |
+| `--field` | | Loqate field `Key=Value` (repeatable, e.g. `--field Address1="125 Summer St" --field Address2="Suite 200"`) |
 | `--option` | | Loqate API option `Key=Value` (repeatable, dot notation for nesting) |
 | `--jsonl` | | JSON Lines output (one object per line) |
 | `--no-color` | | Disable color output |
@@ -169,6 +169,9 @@ lqt verify -a "221B Baker St, London, GB" \
 
 # JSON output for piping to other tools
 lqt verify -a "10 Downing St, London, GB" -o json | jq '.address.confidence'
+
+# Address components via --field
+lqt verify --field Address1="125 Summer St" --field Address2="Suite 200" --locality Boston --postcode 02110 -c US
 
 # Extended input fields
 lqt verify -a "125 Summer St" --field Organization="Acme Corp" --field Building="Suite 200"
