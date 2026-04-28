@@ -186,6 +186,8 @@ Full list of input fields and API options: [Loqate International Batch Cleanse A
 
 Parse and standardize contact data using Claude (Haiku). Extracts address components, validates email syntax, and normalizes phone numbers with awareness of 250+ country-specific postal formats. No Loqate API calls — no credits spent.
 
+> **Data flow:** `lqt parse` sends input data to the Anthropic API for processing. Use `--dry-run` to inspect the exact payload before any data leaves your machine.
+
 ```bash
 lqt parse [flags]
 ```
@@ -204,6 +206,7 @@ lqt parse [flags]
 | `--jsonl` | | JSON Lines output |
 | `--no-color` | | Disable color output |
 | `--anthropic-key` | | Anthropic API key (overrides env) |
+| `--dry-run` | | Show what would be sent to Claude without calling the API |
 
 **Examples:**
 
@@ -216,6 +219,9 @@ lqt parse -a "10 downing st london" -e "test@mailinator.com" -p "02071234567"
 
 # Batch parse from CSV
 lqt parse --batch messy-data.csv --output json
+
+# Dry run — see what would be sent to Claude without calling the API
+lqt parse -a "125 summer street boston ma 02110" --dry-run
 ```
 
 ### policy
