@@ -151,6 +151,7 @@ lqt verify [flags]
 | `--summary` | `-s` | Show batch summary statistics |
 | `--field` | | Loqate field `Key=Value` (repeatable, e.g. `--field Address1="125 Summer St" --field Address2="Suite 200"`) |
 | `--option` | | Loqate API option `Key=Value` (repeatable, dot notation for nesting) |
+| `--dry-run` | | Show what would be sent to Loqate without calling the API (single mode only) |
 | `--jsonl` | | JSON Lines output (one object per line) |
 | `--no-color` | | Disable color output |
 | `--verbose` | `-v` | Show reasoning log |
@@ -178,6 +179,9 @@ lqt verify -a "125 Summer St" --field Organization="Acme Corp" --field Building=
 
 # API options (dot notation for nesting)
 lqt verify -a "125 Summer St, Boston, MA 02110, US" --option GeoCode=true
+
+# Dry run — see the exact Loqate API request without sending it (no API key needed)
+lqt verify --dry-run -a "125 Summer St, Boston, MA 02110, US" --field Organization="Acme Corp" --option GeoCode=true
 ```
 
 Full list of input fields and API options: [Loqate International Batch Cleanse API](https://docs.loqate.com/api-reference/address-verify/international-batch-cleanse)
