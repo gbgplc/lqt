@@ -149,9 +149,8 @@ lqt verify [flags]
 | `--delimiter` | `-d` | Batch delimiter: `comma`, `tab`, `pipe` (auto-detected if omitted) |
 | `--output` | `-o` | Output format: `json`, `jsonl`, `table` |
 | `--summary` | `-s` | Show batch summary statistics |
-| `--field` | | Loqate field `Key=Value` (repeatable, e.g. `--field Address1="125 Summer St" --field Address2="Suite 200"`) |
+| `--field` | | Extra Loqate input field `Key=Value` (repeatable) |
 | `--option` | | Loqate API option `Key=Value` (repeatable, dot notation for nesting) |
-| `--dry-run` | | Show what would be sent to Loqate without calling the API (single mode only) |
 | `--jsonl` | | JSON Lines output (one object per line) |
 | `--no-color` | | Disable color output |
 | `--verbose` | `-v` | Show reasoning log |
@@ -171,17 +170,11 @@ lqt verify -a "221B Baker St, London, GB" \
 # JSON output for piping to other tools
 lqt verify -a "10 Downing St, London, GB" -o json | jq '.address.confidence'
 
-# Address components via --field
-lqt verify --field Address1="125 Summer St" --field Address2="Suite 200" --locality Boston --postcode 02110 -c US
-
 # Extended input fields
 lqt verify -a "125 Summer St" --field Organization="Acme Corp" --field Building="Suite 200"
 
 # API options (dot notation for nesting)
 lqt verify -a "125 Summer St, Boston, MA 02110, US" --option GeoCode=true
-
-# Dry run — see the exact Loqate API request without sending it (no API key needed)
-lqt verify --dry-run -a "125 Summer St, Boston, MA 02110, US" --field Organization="Acme Corp" --option GeoCode=true
 ```
 
 Full list of input fields and API options: [Loqate International Batch Cleanse API](https://docs.loqate.com/api-reference/address-verify/international-batch-cleanse)
@@ -189,8 +182,6 @@ Full list of input fields and API options: [Loqate International Batch Cleanse A
 ### parse
 
 Parse and standardize contact data using Claude (Haiku). Extracts address components, validates email syntax, and normalizes phone numbers with awareness of 250+ country-specific postal formats. No Loqate API calls — no credits spent.
-
-> **Data flow:** `lqt parse` sends input data to the Anthropic API for processing. Use `--dry-run` to inspect the exact payload before any data leaves your machine.
 
 ```bash
 lqt parse [flags]
@@ -210,7 +201,6 @@ lqt parse [flags]
 | `--jsonl` | | JSON Lines output |
 | `--no-color` | | Disable color output |
 | `--anthropic-key` | | Anthropic API key (overrides env) |
-| `--dry-run` | | Show what would be sent to Claude without calling the API |
 
 **Examples:**
 
@@ -223,9 +213,6 @@ lqt parse -a "10 downing st london" -e "test@mailinator.com" -p "02071234567"
 
 # Batch parse from CSV
 lqt parse --batch messy-data.csv --output json
-
-# Dry run — see what would be sent to Claude without calling the API
-lqt parse -a "125 summer street boston ma 02110" --dry-run
 ```
 
 ### policy
@@ -245,15 +232,17 @@ Start an MCP (Model Context Protocol) server. Exposes LQT as tools for AI agents
 ```bash
 lqt mcp                    # Stdio transport (launched by clients)
 lqt mcp --http :8080       # HTTP transport (deployed as a service)
+lqt mcp --smoke-test       # Verify the server starts correctly and exit
 ```
 
-**HTTP mode flags:**
+**Flags:**
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--http` | | Listen address (e.g. `:8080`, `127.0.0.1:8080`) |
 | `--rate-limit` | `10` | Max requests/sec per IP (`0` to disable) |
 | `--rate-burst` | `20` | Max burst size for rate limiter |
+| `--smoke-test` | | Self-test the MCP server (checks tools and prompts register) and exit |
 
 ---
 
@@ -403,7 +392,7 @@ address,email,phone,country
 
 ## MCP Integration
 
-The `lqt mcp` command exposes LQT as tools for AI agents via the [Model Context Protocol](https://modelcontextprotocol.io/).
+The `lqt mcp` command exposes LQT as tools for AI agents via the [Model Context Protocol](https://modelcontextprotocol.io/). Connecting the MCP server also provides a built-in usage guide prompt that teaches the AI how to use the tools effectively.
 
 ### Claude Code / Cursor
 
@@ -460,6 +449,8 @@ Deploy `lqt mcp --http` as a service:
 In HTTP mode, clients can pass API keys per-request via the `key` field in tool arguments.
 
 ### Available Tools
+
+9 tools in stdio mode, 6 in HTTP mode (tools marked *stdio mode only* are not available over HTTP).
 
 | Tool | Description |
 |------|-------------|
@@ -555,5 +546,5 @@ $env:ANTHROPIC_API_KEY="your-key-here"
 ---
 
 <p align="center">
-  Built by GBG Spark Labs in partnership with Team <a href="https://www.loqate.com">Loqate</a> at GBG.
+  Built by GBG Spark Labs in partnership with Team <a href="https://www.loqate.com">Loqate</a> at <a href="https://www.gbg.com">GBG</a>.
 </p>
