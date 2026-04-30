@@ -467,7 +467,7 @@ In HTTP mode, clients can pass API keys per-request via the `key` field in tool 
 | `verify_email` | Verify an email with risk level and recommendation |
 | `verify_phone` | Verify a phone number with type/carrier and recommendation |
 | `verify_contact` | Verify all fields together with overall recommendation |
-| `parse_address` | Parse and standardize an address via Claude |
+| `parse_address` | Parse and standardize an address via Claude (stdio mode only) |
 | `list_policies` | List available decisioning policies |
 | `show_policy` | Show details for a specific policy |
 | `set_policy` | Register a custom policy (stdio mode only) |
