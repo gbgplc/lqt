@@ -578,6 +578,20 @@ In MCP mode, clients can pass `verify_url` and `verify_key` per-request in `veri
 
 ---
 
+## Support
+
+- **Bug reports & feature requests** — [open an issue](https://github.com/gbgplc/lqt/issues/new/choose)
+- **Security vulnerabilities** — please email [security@gbg.com](mailto:security@gbg.com) instead of opening a public issue
+- **General questions** — [start a discussion](https://github.com/gbgplc/lqt/discussions) or open an issue
+
+When reporting a bug, please include:
+- `lqt` version (`lqt --version`)
+- OS and architecture (e.g., macOS ARM64, Linux x86_64)
+- The command you ran (redact any API keys)
+- Expected vs actual behavior
+
+---
+
 <p align="center">
   Built by GBG Spark Labs in partnership with Team <a href="https://www.loqate.com">Loqate</a> at <a href="https://www.gbg.com">GBG</a>.
 </p>
