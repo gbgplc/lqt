@@ -153,6 +153,8 @@ lqt verify [flags]
 | `--option` | | Loqate API option `Key=Value` (repeatable, dot notation for nesting) |
 | `--jsonl` | | JSON Lines output (one object per line) |
 | `--no-color` | | Disable color output |
+| `--verify-url` | | Custom address verification endpoint URL (overrides `LOQATE_VERIFY_URL` env var) |
+| `--verify-key` | | Custom address verification API key (overrides `LOQATE_VERIFY_KEY` env var). When set, `--key` is not required for address-only verification. |
 | `--verbose` | `-v` | Show reasoning log |
 
 **Examples:**
@@ -243,6 +245,7 @@ lqt mcp --smoke-test       # Verify the server starts correctly and exit
 | `--rate-limit` | `10` | Max requests/sec per IP (`0` to disable) |
 | `--rate-burst` | `20` | Max burst size for rate limiter |
 | `--smoke-test` | | Self-test the MCP server (checks tools and prompts register) and exit |
+| `--disable-custom-endpoint` | | Block per-request custom verify endpoint fields |
 
 ---
 
@@ -448,6 +451,8 @@ Deploy `lqt mcp --http` as a service:
 
 In HTTP mode, clients can pass API keys per-request via the `key` field in tool arguments.
 
+Hosted deployments may disable custom verify endpoints for security. If you receive a `CUSTOM_ENDPOINT_DISABLED` error, use the server's default endpoint — do not pass `verify_url` or `verify_key` in your tool arguments.
+
 ### Available Tools
 
 9 tools in stdio mode, 6 in HTTP mode (tools marked *stdio mode only* are not available over HTTP).
@@ -542,6 +547,34 @@ $env:ANTHROPIC_API_KEY="your-key-here"
 ```
 
 **Resolution order:** flag > environment variable > key file
+
+### Custom Verify Endpoint (optional)
+
+If you need to route address verification through a different endpoint (e.g., an on-premises or partner-hosted Loqate instance):
+
+**macOS / Linux:**
+```bash
+# Environment variables
+export LOQATE_VERIFY_URL=https://custom-verify.example.com/v1/batch
+export LOQATE_VERIFY_KEY=your-custom-key
+
+# Or use flags (override env vars)
+lqt verify -a "..." --verify-url https://custom-verify.example.com/v1/batch --verify-key your-custom-key
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:LOQATE_VERIFY_URL="https://custom-verify.example.com/v1/batch"
+$env:LOQATE_VERIFY_KEY="your-custom-key"
+```
+
+**Resolution order:** flag > environment variable > default Loqate endpoint
+
+When `--verify-key` is set, the standard `--key` / `LOQATE_API_KEY` is not required for address-only verification. If you also verify email (`-e`) or phone (`-p`), the standard key is still needed for those.
+
+These flags only affect address verification. Email and phone always use the standard Loqate endpoints.
+
+In MCP mode, clients can pass `verify_url` and `verify_key` per-request in `verify_address` and `verify_contact` tool inputs.
 
 ---
 
