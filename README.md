@@ -581,7 +581,7 @@ In MCP mode, clients can pass `verify_url` and `verify_key` per-request in `veri
 ## Support
 
 - **Bug reports & feature requests** — [open an issue](https://github.com/gbgplc/lqt/issues/new/choose)
-- **Security vulnerabilities** — please email [security@gbg.com](mailto:security@gbg.com) instead of opening a public issue
+- **Security vulnerabilities** — please email [labs@gbg.com](mailto:labs@gbg.com) instead of opening a public issue
 - **General questions** — [start a discussion](https://github.com/gbgplc/lqt/discussions) or open an issue
 
 When reporting a bug, please include:
