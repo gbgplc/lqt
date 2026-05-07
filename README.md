@@ -7,7 +7,8 @@
 <p align="center">
   Verify addresses, emails, and phone numbers against Loqate's APIs.<br>
   Get confidence scores, policy-aware recommendations, and full auditability — in one command.<br>
-  Real-time verification decisioning for agents that need to know whether contact data is good enough for the job.
+  Real-time verification decisioning for agents that need to know whether contact data is good enough for the job.<br>
+  Part of <a href="https://agents.gbg.com/reach">GBG Reach</a>.
 </p>
 
 <p align="center">
