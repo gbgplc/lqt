@@ -1,20 +1,21 @@
 name: Feature Request
-description: Suggest a new feature or improvement
+description: Suggest an idea or improvement
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        We'd love to hear your ideas. Please describe the feature you'd like to see.
+        Thanks for suggesting an improvement! Please describe what you'd like to see.
   - type: dropdown
     id: interface
     attributes:
       label: Interface
-      description: "Which interface is this for?"
+      description: "Which interface does this apply to?"
       options:
-        - CLI
-        - MCP server
-        - Demo
+        - CLI (lqt verify / lqt parse)
+        - MCP server (stdio)
+        - MCP server (HTTP)
+        - Demo (lqt demo)
         - All / not specific
     validations:
       required: true
@@ -22,18 +23,23 @@ body:
     id: problem
     attributes:
       label: Problem or use case
-      description: "What problem does this solve? What are you trying to do?"
+      description: "What problem does this solve, or what use case does it enable?"
     validations:
       required: true
   - type: textarea
     id: solution
     attributes:
       label: Proposed solution
-      description: "How would you like this to work? (flags, behavior, output format, etc.)"
+      description: "How would you like this to work?"
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
       label: Alternatives considered
-      description: "Any workarounds or alternative approaches you've tried"
+      description: "Any workarounds or alternatives you've tried?"
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: "Anything else (examples, screenshots, links to related issues, etc.)"
