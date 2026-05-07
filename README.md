@@ -593,5 +593,5 @@ When reporting a bug, please include:
 ---
 
 <p align="center">
-  Built by GBG Spark Labs in partnership with Team <a href="https://www.loqate.com">Loqate</a> at <a href="https://www.gbg.com">GBG</a>.
+  Built by <a href="https://www.gbg.com">GBG</a>.
 </p>
