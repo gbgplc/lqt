@@ -593,6 +593,12 @@ When reporting a bug, please include:
 
 ---
 
+## License
+
+Proprietary — see [LICENSE](LICENSE). Use requires an active Loqate subscription.
+
+---
+
 <p align="center">
   Built by <a href="https://www.gbg.com">GBG</a>.
 </p>
