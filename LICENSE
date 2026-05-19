@@ -1,15 +1,20 @@
-Copyright (c) 2025-2026 GBG Group plc. All rights reserved.
+Copyright (c) 2025-2026 GB Group plc. All rights reserved.
 
-This software is proprietary to GBG Group plc and is provided as part
-of your Loqate subscription. Use is governed by the Loqate terms and
-conditions agreed upon with your Loqate account.
+This technology preview software is proprietary to GB Group plc and is
+provided as part of your Loqate subscription. This software provided in
+technology preview is provided "as-is" and is subject to change. GB Group
+plc assumes no liability for its use except for any liability which cannot
+be excluded by law. GBG is not responsible for any decisions, whether
+automated or not, that the Customer makes based on the information,
+service, results or data provided (including, but not limited to onboarding
+decisions) through any GBG for Agents capability, including Reach.
 
-This software requires a valid Loqate API key obtained through an
-active Loqate subscription.
+For the avoidance of doubt, the Customer remains fully responsible for any
+use of this software by AI Agents as if such use were carried out directly
+by the Customer.
 
-For questions, contact: https://www.loqate.com/contact/
-
-GBG is not responsible for any decisions, whether automated or not,
-that the Customer makes based on the information, Service, Results
-or data provided (including, but not limited to onboarding decisions)
-through any GBG for Agents capability, including Reach.
+This software requires a valid Loqate API key obtained through an active
+Loqate subscription. For questions or requests to use this software or
+amended versions of such, within a production environment please contact:
+labs@gbg.com. Use within a production environment shall be governed by
+terms and conditions agreed upon with your Loqate account.
