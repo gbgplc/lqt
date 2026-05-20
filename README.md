@@ -436,9 +436,58 @@ Add to Claude Desktop's MCP settings:
 }
 ```
 
-### Remote HTTP
+### GBG-hosted endpoint (recommended)
 
-Deploy `lqt mcp --http` as a service:
+The fastest way to use Loqate over MCP is the GBG-hosted endpoint — no install, no infrastructure. Point any MCP client at:
+
+```
+https://reach.prod.fabric.gbgplatforms.com/mcp
+```
+
+**Claude Code / Cursor / any MCP client** — `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "loqate": {
+      "url": "https://reach.prod.fabric.gbgplatforms.com/mcp"
+    }
+  }
+}
+```
+
+Restart your client, then ask it to "verify 125 Summer St, Boston, MA 02110, US". It will discover the tools, call them, and explain the result.
+
+**Authenticate with your Loqate API key — pick one:**
+
+1. **Per-call** — pass `key` in the tool arguments (`{"key": "YOUR-KEY", "address": "..."}`).
+2. **Connection-wide** — set `Authorization: Bearer <YOUR-LOQATE-KEY>` on the HTTP connection. Applies to every tool call.
+3. **Out of band (Claude only)** — put `<loqate_api_key>YOUR-KEY</loqate_api_key>` in org / project / user instructions; the model injects it as `key` automatically.
+
+If you supply none of the three, the server returns a `NO_API_KEY` error. The Bearer header only supplies the standard Loqate key; `verify_key` for a custom address-verify endpoint is separate.
+
+**Sanity check from your terminal** (no client needed):
+
+```bash
+# List tools (no auth required)
+curl -s -X POST https://reach.prod.fabric.gbgplatforms.com/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+# Verify an address (Bearer auth)
+curl -s -X POST https://reach.prod.fabric.gbgplatforms.com/mcp \
+  -H 'Authorization: Bearer YOUR-LOQATE-KEY' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"verify_address","arguments":{"address":"125 Summer St, Boston, MA 02110, US"}}}'
+```
+
+Hosted deployments disable custom verify endpoints for security. If you receive a `CUSTOM_ENDPOINT_DISABLED` error, remove `verify_url` and `verify_key` from your tool arguments.
+
+### Remote HTTP (self-hosted)
+
+If you'd rather run the server yourself, deploy `lqt mcp --http` as a service:
 
 ```json
 {
@@ -450,9 +499,7 @@ Deploy `lqt mcp --http` as a service:
 }
 ```
 
-In HTTP mode, clients can pass API keys per-request via the `key` field in tool arguments.
-
-Hosted deployments may disable custom verify endpoints for security. If you receive a `CUSTOM_ENDPOINT_DISABLED` error, use the server's default endpoint — do not pass `verify_url` or `verify_key` in your tool arguments.
+Same three-tier key resolution applies (body `key` → `Authorization: Bearer` → server env `LOQATE_API_KEY`).
 
 ### Available Tools
 
