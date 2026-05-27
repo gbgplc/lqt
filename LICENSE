@@ -1,20 +1,11 @@
 Copyright (c) 2025-2026 GB Group plc. All rights reserved.
 
-This technology preview software is proprietary to GB Group plc and is
-provided as part of your Loqate subscription. This software provided in
-technology preview is provided "as-is" and is subject to change. GB Group
-plc assumes no liability for its use except for any liability which cannot
-be excluded by law. GBG is not responsible for any decisions, whether
-automated or not, that the Customer makes based on the information,
-service, results or data provided (including, but not limited to onboarding
-decisions) through any GBG for Agents capability, including Reach.
+This software is proprietary to GB Group plc. This software is provided as part of the Customer's existing agreement with GB Group plc for Loqate and requires a valid Loqate API key. Subject to the remaining detail below, use of the software shall be governed by the Customer's existing agreement with GB Group plc for Loqate.
 
-For the avoidance of doubt, the Customer remains fully responsible for any
-use of this software by AI Agents as if such use were carried out directly
-by the Customer.
+When provided in technology preview, the software is provided "as-is", is subject to change and GB Group plc assumes no liability for the Customer's use of such software except for any liability which cannot be excluded by law for such use.
 
-This software requires a valid Loqate API key obtained through an active
-Loqate subscription. For questions or requests to use this software or
-amended versions of such, within a production environment please contact:
-labs@gbg.com. Use within a production environment shall be governed by
-terms and conditions agreed upon with your Loqate account.
+GBG is not responsible for any decisions, whether automated or not, that the Customer makes based on the information, service, results or data provided (including, but not limited to onboarding decisions) through any GBG for Agents capability, including this software.
+
+For the avoidance of doubt, the Customer remains fully responsible for any use of this software by AI Agents or any other individual, as if such use were carried out directly by the Customer under their existing agreement with GB Group plc for Loqate.
+
+For questions or requests regarding the software please contact: labs@gbg.com.
