@@ -170,6 +170,10 @@ lqt verify -a "221B Baker St, London, GB" \
            -p "+442071234567" \
            --policy strict
 
+# Email-only or phone-only (no address required)
+lqt verify -e "sherlock@example.com"
+lqt verify -p "+442071234567"
+
 # JSON output for piping to other tools
 lqt verify -a "10 Downing St, London, GB" -o json | jq '.address.confidence'
 
@@ -177,7 +181,10 @@ lqt verify -a "10 Downing St, London, GB" -o json | jq '.address.confidence'
 lqt verify -a "125 Summer St" --field Organization="Acme Corp" --field Building="Suite 200"
 
 # API options (dot notation for nesting)
+# GeoCode is sent at the request root as a JSON boolean (where Loqate expects it);
+# ServerOptions values are sent as strings (use Loqate's exact casing).
 lqt verify -a "125 Summer St, Boston, MA 02110, US" --option GeoCode=true
+lqt verify -a "125 Summer St, Boston, MA 02110, US" --option ServerOptions.OutputCasing=Upper
 ```
 
 Full list of input fields and API options: [Loqate International Batch Cleanse API](https://docs.loqate.com/api-reference/address-verify/international-batch-cleanse)
