@@ -141,6 +141,7 @@ lqt verify [flags]
 | `--admin-area` | | State/province |
 | `--postcode` | | Postal/ZIP code |
 | `--country` | `-c` | ISO 2-letter country code |
+| `--detect-country` | | When no country is supplied, guess it from the address and flag the guess in the result. Address-only; off by default. |
 | `--email` | `-e` | Email address to verify |
 | `--phone` | `-p` | Phone number (E.164 format) |
 | `--key` | `-k` | Loqate API key (overrides env) |
@@ -173,6 +174,10 @@ lqt verify -a "221B Baker St, London, GB" \
 # Email-only or phone-only (no address required)
 lqt verify -e "sherlock@example.com"
 lqt verify -p "+442071234567"
+
+# Guess a missing country from the address (opt-in, address-only)
+lqt verify -a "10 Downing St, London SW1A 2AA" --detect-country
+# → result includes: country_guessed, detected_country, country_confidence
 
 # JSON output for piping to other tools
 lqt verify -a "10 Downing St, London, GB" -o json | jq '.address.confidence'
@@ -514,10 +519,10 @@ Same three-tier key resolution applies (body `key` → `Authorization: Bearer` �
 
 | Tool | Description |
 |------|-------------|
-| `verify_address` | Verify an address with confidence score and recommendation |
+| `verify_address` | Verify an address with confidence score and recommendation (supports `detect_country`) |
 | `verify_email` | Verify an email with risk level and recommendation |
 | `verify_phone` | Verify a phone number with type/carrier and recommendation |
-| `verify_contact` | Verify all fields together with overall recommendation |
+| `verify_contact` | Verify all fields together with overall recommendation (supports `detect_country`) |
 | `parse_address` | Parse and standardize an address via Claude (stdio mode only) |
 | `list_policies` | List available decisioning policies |
 | `show_policy` | Show details for a specific policy |
