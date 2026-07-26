@@ -532,6 +532,23 @@ curl -s -X POST https://reach.prod.fabric.gbgplatforms.com/mcp \
 
 Hosted deployments disable custom verify endpoints for security. If you receive a `CUSTOM_ENDPOINT_DISABLED` error, remove `verify_url` and `verify_key` from your tool arguments.
 
+### GBG-hosted REST endpoint
+
+Prefer plain REST? The same hosted service also exposes the [REST API](#rest-api) — no MCP client required. Authenticate with your Loqate API key as a bearer token.
+
+```bash
+# Verify an address
+curl -s -X POST https://reach.prod.fabric.gbgplatforms.com/v1/verify/address \
+  -H 'Authorization: Bearer YOUR-LOQATE-KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"address":"125 Summer St, Boston, MA 02110, US","policy":"standard"}'
+
+# Browse the interactive API reference (no key required)
+open https://reach.prod.fabric.gbgplatforms.com/v1/docs
+```
+
+The OpenAPI spec (`/v1/openapi.json`) and reference page (`/v1/docs`) are unauthenticated, so you can explore the full API before you have a key.
+
 ### Remote HTTP (self-hosted)
 
 If you'd rather run the server yourself, deploy `lqt mcp --http` as a service:
