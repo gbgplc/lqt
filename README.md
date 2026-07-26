@@ -259,6 +259,41 @@ lqt mcp --smoke-test       # Verify the server starts correctly and exit
 | `--rate-burst` | `20` | Max burst size for rate limiter |
 | `--smoke-test` | | Self-test the MCP server (checks tools and prompts register) and exit |
 | `--disable-custom-endpoint` | | Block per-request custom verify endpoint fields |
+| `--rest` | | Also serve the REST API at `/v1` (HTTP mode only) |
+
+---
+
+### REST API
+
+For clients that don't speak MCP, the HTTP server can also expose a plain REST API — opt-in with `--rest`, mounted at `/v1` on the same port. Same result data as the CLI and MCP.
+
+```bash
+lqt mcp --http :8080 --rest
+```
+
+**Authentication:** your Loqate API key as a bearer token — `Authorization: Bearer <LOQATE_API_KEY>` (or `key` in the request body).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/verify/address` | Verify an address (supports `detect_country`) |
+| `POST` | `/v1/verify/email` | Verify an email |
+| `POST` | `/v1/verify/phone` | Verify a phone number |
+| `POST` | `/v1/verify/contact` | Verify any combination + overall recommendation |
+| `GET`  | `/v1/policies` | List decisioning policies |
+| `GET`  | `/v1/policies/{name}` | Show one policy |
+| `GET`  | `/v1/openapi.json` | OpenAPI 3.1 specification |
+| `GET`  | `/v1/docs` | Interactive API reference |
+
+A recommendation (`accept` / `review` / `reject`) is always returned as HTTP `200` with the decision in the body. Errors use standard status codes: `400` invalid input, `401` missing/invalid key, `429` rate limited, `502` upstream error.
+
+```bash
+curl -s -X POST https://your-host/v1/verify/address \
+  -H "Authorization: Bearer $LOQATE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"address":"125 Summer St, Boston, MA 02110, US","policy":"standard"}'
+```
+
+Full request/response schemas are documented in the OpenAPI spec at `/v1/openapi.json` (browse it at `/v1/docs`).
 
 ---
 
