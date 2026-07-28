@@ -142,6 +142,9 @@ lqt verify [flags]
 | `--postcode` | | Postal/ZIP code |
 | `--country` | `-c` | ISO 2-letter country code |
 | `--detect-country` | | When no country is supplied, guess it from the address and flag the guess in the result. Address-only; off by default. |
+| `--suggest` | | When the address does not clear the policy (`review` or `reject`), look up alternative addresses suggested by Loqate and return them under `address.suggestions`. Not called for an accepted address. Address-only; off by default; not available with `--batch`. |
+| `--suggest-limit` | | Maximum suggestions to return, 1–10 (default 5). Requires `--suggest`. |
+| `--suggest-below` | | Confidence floor for suggestions: an accepted address scoring below it still gets suggestions. Defaults to the active policy's value (standard 0.85). `0` disables the floor. Requires `--suggest`. |
 | `--email` | `-e` | Email address to verify |
 | `--phone` | `-p` | Phone number (E.164 format) |
 | `--key` | `-k` | Loqate API key (overrides env) |
@@ -179,6 +182,17 @@ lqt verify -p "+442071234567"
 lqt verify -a "10 Downing St, London SW1A 2AA" --detect-country
 # → result includes: country_guessed, detected_country, country_confidence
 
+# Suggest alternatives when the address does not clear the policy (opt-in, address-only)
+lqt verify -a "10 downin st london" -c GB --suggest
+lqt verify -a "10 downin st london" -c GB --suggest --suggest-limit 3
+# → result includes: address.suggestions with a list of candidate addresses
+
+# Accepted but not confident: a street-level match accepted at 0.55 still gets alternatives
+lqt verify -a "marsh wall, E14 9TN" -c GB --suggest
+# Move or disable the confidence floor
+lqt verify -a "marsh wall, E14 9TN" -c GB --suggest --suggest-below 0.95
+lqt verify -a "marsh wall, E14 9TN" -c GB --suggest --suggest-below 0
+
 # JSON output for piping to other tools
 lqt verify -a "10 Downing St, London, GB" -o json | jq '.address.confidence'
 
@@ -193,6 +207,136 @@ lqt verify -a "125 Summer St, Boston, MA 02110, US" --option ServerOptions.Outpu
 ```
 
 Full list of input fields and API options: [Loqate International Batch Cleanse API](https://docs.loqate.com/api-reference/address-verify/international-batch-cleanse)
+
+#### Address suggestions (`--suggest`)
+
+Verification tells you an address is wrong. Suggestions tell you what the right one probably
+is. Add `--suggest` and `lqt` asks Loqate for real addresses matching what was typed, returning
+them with the decision.
+
+The lookup runs when either:
+
+1. the address was **not accepted** (`review` or `reject`), or
+2. the address was accepted but scored **below the policy's suggestion floor** (0.85 on
+   `standard` — see the [Policies](#policies) table).
+
+The second case is the one that catches near-misses. A policy accepts anything at or above its
+minimum confidence, so *accepted* is not the same as *confident*: on `standard` the input
+`marsh wall, E14 9TN` matches a street and scores exactly 0.55, which is accepted — yet the
+house number is missing and better addresses exist. Use `--suggest-below` to move that line
+(`--suggest-below 0` turns the confidence check off and only suggests on review/reject).
+
+```json
+{
+  "address": {
+    "verified_address": "Downing Street, London",
+    "confidence": 0.5,
+    "recommendation": "review",
+    "suggestions": {
+      "requested": true,
+      "triggered": true,
+      "reason": "accepted but confidence 0.55 is below the 0.85 floor",
+      "floor": 0.85,
+      "source": "loqate",
+      "count": 2,
+      "items": [
+        {
+          "id": "GB|RM|A|52509479",
+          "type": "Address",
+          "text": "10 Downing Street",
+          "description": "London, SW1A 2AA",
+          "address": "10 Downing Street, London, SW1A 2AA"
+        },
+        {
+          "id": "GB|RM|A|52509480",
+          "type": "Address",
+          "text": "11 Downing Street",
+          "description": "London, SW1A 2AB",
+          "address": "11 Downing Street, London, SW1A 2AB"
+        }
+      ]
+    }
+  }
+}
+```
+
+Things worth knowing:
+
+- **Off by default**, so existing output is unchanged unless you ask for suggestions.
+- **No lookup for a confidently accepted address** — you pay the extra latency only where it
+  helps. The `suggestions` block is still returned with `"triggered": false` and a `reason`, so
+  you can tell "no alternatives needed" from "suggestions were never requested".
+- **`floor` reports the threshold that was applied**, so you can see why a lookup ran (or
+  didn't) without knowing the policy's configuration.
+- **Suggestions never change the decision.** If the lookup fails, the reason appears in
+  `suggestions.error` and the verification result stands.
+- **Address-only.** With `verify --email` / `--phone`, or `verify_contact`, only the address
+  block is decorated.
+- An entry with `"expandable": true` is a street, postcode, or building holding several
+  addresses rather than one deliverable address. Search within it for a specific premise.
+- Suggestion lookups do not consume Loqate verification credits.
+- Suggestions need a standard Loqate key (`--key` / `LOQATE_API_KEY`); `--verify-key` alone
+  covers address verification only.
+- **Not available with `--batch`.** A large file would fan out into an unbounded number of
+  lookups, so the combination is rejected. Verify the file, then re-run the flagged rows
+  individually with `--suggest`.
+
+Available on the MCP `verify_address` / `verify_contact` tools and the REST
+`/v1/verify/address` / `/v1/verify/contact` endpoints as `suggest: true`, with optional
+`suggest_limit` (1–10, default 5) and `suggest_below` (0–1).
+
+#### Closing the loop: offer, choose, re-verify
+
+**A suggestion is a candidate, not a verdict.** Items carry no confidence score, no match
+level, and no AVC — they are what the reference data thinks the address might have been. Don't
+write one into your system of record on faith. Close the loop in three steps:
+
+1. **Verify with `--suggest`.** A non-empty `suggestions.items` means alternatives exist.
+2. **Offer `items[].address` to whoever can decide** — the customer in a checkout or support
+   flow, the agent in an automated one. That field is the ready-to-display line.
+3. **Re-verify the chosen line.** *That* result — its confidence, match level, and
+   standardized fields — is the one you keep.
+
+```bash
+# 1. verify, asking for alternatives
+lqt verify -a "marsh wall, E14 9TN" -c GB --suggest -o json > result.json
+
+# 2. show the candidates
+jq -r '.address.suggestions.items[] | .address' result.json
+#   1 Marsh Wall, London, E14 9TN
+#   2 Marsh Wall, London, E14 9TN
+
+# 3. re-verify the chosen one — this is the decision of record
+lqt verify -a "1 Marsh Wall, London, E14 9TN" -c GB -o json
+```
+
+Over REST it's the same shape — one call with `suggest`, then a plain call with the choice:
+
+```bash
+curl -s -X POST https://your-host/v1/verify/address \
+  -H "Authorization: Bearer $LOQATE_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"address":"marsh wall, E14 9TN","country":"GB","suggest":true}'
+
+curl -s -X POST https://your-host/v1/verify/address \
+  -H "Authorization: Bearer $LOQATE_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"address":"1 Marsh Wall, London, E14 9TN","country":"GB"}'
+```
+
+Four rules that keep the loop safe:
+
+- **Omit `suggest` on the confirmation call.** If the chosen address still doesn't clear the
+  policy you'd get a fresh set of suggestions, and an automated flow could bounce between them.
+  One round of suggestions, then a plain verify.
+- **Let the re-verify decide** — not the fact that a suggestion existed. If the confirmation
+  returns `review` or `reject`, the record still needs a human. You've narrowed it, not fixed it.
+- **Don't re-verify an `expandable` item as-is.** It's a street, postcode, or building, so
+  verifying it lands at street level at best. Use it to ask for the missing piece ("which
+  number on Marsh Wall?") and verify the completed address.
+- **Never store `id`.** It's a Loqate-assigned identifier that changes over time. Key off the
+  verified address returned in step 3.
+
+Keep the country from the original request on the confirmation call — dropping it can change
+the match.
 
 ### parse
 
@@ -275,10 +419,10 @@ lqt mcp --http :8080 --rest
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/v1/verify/address` | Verify an address (supports `detect_country`) |
+| `POST` | `/v1/verify/address` | Verify an address (supports `detect_country`, `suggest`) |
 | `POST` | `/v1/verify/email` | Verify an email |
 | `POST` | `/v1/verify/phone` | Verify a phone number |
-| `POST` | `/v1/verify/contact` | Verify any combination + overall recommendation |
+| `POST` | `/v1/verify/contact` | Verify any combination + overall recommendation (supports `detect_country`, `suggest`) |
 | `GET`  | `/v1/policies` | List decisioning policies |
 | `GET`  | `/v1/policies/{name}` | Show one policy |
 | `GET`  | `/v1/openapi.json` | OpenAPI 3.1 specification |
@@ -291,6 +435,12 @@ curl -s -X POST https://your-host/v1/verify/address \
   -H "Authorization: Bearer $LOQATE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"address":"125 Summer St, Boston, MA 02110, US","policy":"standard"}'
+
+# Ask for alternatives when the address does not clear the policy
+curl -s -X POST https://your-host/v1/verify/address \
+  -H "Authorization: Bearer $LOQATE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"address":"10 downin st london","country":"GB","suggest":true,"suggest_limit":5}'
 ```
 
 Full request/response schemas are documented in the OpenAPI spec at `/v1/openapi.json` (browse it at `/v1/docs`).
@@ -301,12 +451,17 @@ Full request/response schemas are documented in the OpenAPI spec at `/v1/openapi
 
 Policies control what gets accepted, reviewed, or rejected. Every verification runs through a policy — there are no hardcoded thresholds.
 
-| Policy | Addr Confidence | Match Level | Email Confidence | Phone Required | Use Case |
-|--------|:-:|:-:|:-:|:-:|------|
-| **strict** | 0.90 | premise | 0.85 | yes | KYC, fraud prevention, regulated |
-| **shipping** | 0.70 | street | 0.50 | no | Physical delivery, ecommerce |
-| **standard** | 0.55 | street | 0.45 | no | General verification (default) |
-| **permissive** | 0.30 | locality | 0.30 | no | Lead capture, early funnel |
+| Policy | Addr Confidence | Match Level | Email Confidence | Phone Required | Suggest Below | Use Case |
+|--------|:-:|:-:|:-:|:-:|:-:|------|
+| **strict** | 0.90 | premise | 0.85 | yes | 0.90 | KYC, fraud prevention, regulated |
+| **shipping** | 0.70 | street | 0.50 | no | 0.85 | Physical delivery, ecommerce |
+| **standard** | 0.55 | street | 0.45 | no | 0.85 | General verification (default) |
+| **permissive** | 0.30 | locality | 0.30 | no | 0.70 | Lead capture, early funnel |
+
+**Suggest Below** is not an acceptance threshold — it never changes accept/review/reject. It is
+the confidence below which `--suggest` looks up alternatives even for an *accepted* address.
+See [Address suggestions](#address-suggestions---suggest). Custom policies can set their own
+value, and the `recommend_policy` MCP tool proposes one for the use case you describe.
 
 ### Custom Policies
 
@@ -571,15 +726,15 @@ Same three-tier key resolution applies (body `key` → `Authorization: Bearer` �
 
 | Tool | Description |
 |------|-------------|
-| `verify_address` | Verify an address with confidence score and recommendation (supports `detect_country`) |
+| `verify_address` | Verify an address with confidence score and recommendation (supports `detect_country`, `suggest`) |
 | `verify_email` | Verify an email with risk level and recommendation |
 | `verify_phone` | Verify a phone number with type/carrier and recommendation |
-| `verify_contact` | Verify all fields together with overall recommendation (supports `detect_country`) |
+| `verify_contact` | Verify all fields together with overall recommendation (supports `detect_country`, `suggest`) |
 | `parse_address` | Parse and standardize an address via Claude (stdio mode only) |
 | `list_policies` | List available decisioning policies |
 | `show_policy` | Show details for a specific policy |
 | `set_policy` | Register a custom policy (stdio mode only) |
-| `recommend_policy` | Get a recommended policy for your use case (stdio mode only) |
+| `recommend_policy` | Get a recommended policy for your use case, including its suggestion confidence floor (stdio mode only) |
 
 ---
 
