@@ -142,9 +142,10 @@ lqt verify [flags]
 | `--postcode` | | Postal/ZIP code |
 | `--country` | `-c` | ISO 2-letter country code |
 | `--detect-country` | | When no country is supplied, guess it from the address and flag the guess in the result. Address-only; off by default. |
-| `--suggest` | | When the address does not clear the policy (`review` or `reject`), look up alternative addresses suggested by Loqate and return them under `address.suggestions`. Not called for an accepted address. Address-only; off by default; not available with `--batch`. |
+| `--suggest` | | When the address does not clear the policy (`review` or `reject`), look up alternative addresses suggested by Loqate and return them under `address.suggestions`. Not called for an accepted address. **Requires a separately licensed Loqate feature enabled on your account.** Address-only; off by default; not available with `--batch`. |
 | `--suggest-limit` | | Maximum suggestions to return, 1–10 (default 5). Requires `--suggest`. |
 | `--suggest-below` | | Confidence floor for suggestions: an accepted address scoring below it still gets suggestions. Defaults to the active policy's value (standard 0.85). `0` disables the floor. Requires `--suggest`. |
+| `--suggestion-id` | | Verify a suggestion the user chose, by its `id` from `address.suggestions`. Resolves the id to its cleansed components and verifies those. Use instead of `--address`. **Consumes a Loqate credit.** Not available with `--batch` or `--dry-run`. |
 | `--email` | `-e` | Email address to verify |
 | `--phone` | `-p` | Phone number (E.164 format) |
 | `--key` | `-k` | Loqate API key (overrides env) |
@@ -210,6 +211,12 @@ Full list of input fields and API options: [Loqate International Batch Cleanse A
 
 #### Address suggestions (`--suggest`)
 
+> **Licensing.** Suggestions use a Loqate feature that is **licensed separately from address
+> verification** and must be enabled on your account. If it isn't, nothing breaks: the
+> verification still returns its normal result and exit code, and the reason appears in
+> `suggestions.error` (typically an unknown-key or licence message from Loqate). Talk to your
+> Loqate account contact to have it enabled.
+
 Verification tells you an address is wrong. Suggestions tell you what the right one probably
 is. Add `--suggest` and `lqt` asks Loqate for real addresses matching what was typed, returning
 them with the decision.
@@ -274,7 +281,7 @@ Things worth knowing:
   block is decorated.
 - An entry with `"expandable": true` is a street, postcode, or building holding several
   addresses rather than one deliverable address. Search within it for a specific premise.
-- Suggestion lookups do not consume Loqate verification credits.
+- Suggestion lookups do not consume Loqate verification credits, but the feature must be licensed on your account (see the note above).
 - Suggestions need a standard Loqate key (`--key` / `LOQATE_API_KEY`); `--verify-key` alone
   covers address verification only.
 - **Not available with `--batch`.** A large file would fan out into an unbounded number of
@@ -294,8 +301,8 @@ write one into your system of record on faith. Close the loop in three steps:
 1. **Verify with `--suggest`.** A non-empty `suggestions.items` means alternatives exist.
 2. **Offer `items[].address` to whoever can decide** — the customer in a checkout or support
    flow, the agent in an automated one. That field is the ready-to-display line.
-3. **Re-verify the chosen line.** *That* result — its confidence, match level, and
-   standardized fields — is the one you keep.
+3. **Confirm the choice by its `id`** (`--suggestion-id`). *That* result — its confidence,
+   match level, and standardized fields — is the one you keep. Full flow below.
 
 ```bash
 # 1. verify, asking for alternatives
@@ -322,6 +329,72 @@ curl -s -X POST https://your-host/v1/verify/address \
   -d '{"address":"1 Marsh Wall, London, E14 9TN","country":"GB"}'
 ```
 
+#### The full flow, end to end
+
+1. **Verify with `--suggest`** — get candidates for an address that didn't come back clean.
+2. **Offer `items[].address`** to whoever decides.
+3. **Confirm with `--suggestion-id`**, using the chosen item's `id`. That result is the one you keep.
+
+```bash
+# 1 + 2
+lqt verify -a "marsh wall london" -c GB --suggest -o json > r.json
+jq -r '.address.suggestions.items[] | "\(.id)\t\(.address)"' r.json
+
+# 3 — confirm the chosen one by id, not by re-typing the text
+lqt verify --suggestion-id "GB|RM|B|55782678" -o json
+```
+
+Passing the **id** rather than the text is what makes step 3 accurate: `lqt` fetches that
+address's cleansed components (company, sub-building, number, street, city, postcode, country)
+and verifies those, so nothing is re-parsed. It matters for suggestions carrying a company name
+— `London Lash, 56 Marsh Wall, London` — where re-reading the text can misplace the company as
+part of the street.
+
+The result records what it resolved from, so you can audit it without resolving again:
+
+```json
+{
+  "verified_address": "56 Marsh Wall, London, E14 9TP",
+  "confidence": 0.95,
+  "recommendation": "accept",
+  "resolved_from": {
+    "suggestion_id": "GB|RM|B|55782678",
+    "address": "London Lash, Unit 7, Hampton Tower, 56 Marsh Wall, LONDON, E14 9TP"
+  }
+}
+```
+
+Over REST, the same two steps:
+
+```bash
+curl -s -X POST https://your-host/v1/verify/address \
+  -H "Authorization: Bearer $LOQATE_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"address":"marsh wall london","country":"GB","suggest":true}'
+
+curl -s -X POST https://your-host/v1/verify/address \
+  -H "Authorization: Bearer $LOQATE_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"suggestion_id":"GB|RM|B|55782678"}'
+```
+
+**What to know:**
+
+- **Step 3 consumes a Loqate credit** to resolve the id (the search in step 1 does not). Resolve
+  the one address that was chosen — not the whole list to compare.
+- `suggestion_id` replaces `address`; sending both is a `400`.
+- Not available with `--batch`, and not with `--dry-run` (resolving needs a live billable call).
+- A stale id returns `SUGGESTION_NOT_FOUND` / `404`. Ids change over time — search again rather
+  than retrying the same id.
+
+**Just want the address, not a decision?** Resolve it on its own:
+
+```bash
+lqt retrieve --id "GB|RM|B|55782678"           # components as JSON
+lqt retrieve --id "GB|RM|B|55782678" -o table  # human-readable
+```
+
+`GET /v1/address/{id}` over REST, or the `retrieve_address` MCP tool. This returns reference
+data, **not** a verification — no confidence, no recommendation — so don't treat it as checked.
+
 Four rules that keep the loop safe:
 
 - **Omit `suggest` on the confirmation call.** If the chosen address still doesn't clear the
@@ -337,6 +410,28 @@ Four rules that keep the loop safe:
 
 Keep the country from the original request on the confirmation call — dropping it can change
 the match.
+
+#### Suggestion ranking comes from Loqate
+
+`lqt` returns suggestions in the order Loqate provides them — no re-ranking or filtering is
+applied. Loqate matches across the whole address record, **including organisation names**, so a
+query like `marsh wall london` ranks businesses with "London" in their name above plain
+residential addresses on that street:
+
+```
+London Lash, 56 Marsh Wall, London, E14 9TP
+London Metropolis Ltd, 77 Marsh Wall, London, E14 9SH
+```
+
+That's standard address-autocomplete behaviour, but it means **suggestion quality tracks input
+quality**. Where you know the country, pass it as `--country` rather than leaving it in the
+address text — that moves the token out of the fuzzy match and into a filter:
+
+```bash
+lqt verify -a "marsh wall london" --suggest      # "london" is matchable text
+lqt verify -a "marsh wall" -c GB --suggest       # cleaner: country is a filter
+```
+
 
 ### parse
 
@@ -419,10 +514,11 @@ lqt mcp --http :8080 --rest
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/v1/verify/address` | Verify an address (supports `detect_country`, `suggest`) |
+| `POST` | `/v1/verify/address` | Verify an address (supports `detect_country`, `suggest`, `suggestion_id`) |
 | `POST` | `/v1/verify/email` | Verify an email |
 | `POST` | `/v1/verify/phone` | Verify a phone number |
 | `POST` | `/v1/verify/contact` | Verify any combination + overall recommendation (supports `detect_country`, `suggest`) |
+| `GET`  | `/v1/address/{id}` | Resolve a suggestion id to a cleansed address (**consumes a credit**) |
 | `GET`  | `/v1/policies` | List decisioning policies |
 | `GET`  | `/v1/policies/{name}` | Show one policy |
 | `GET`  | `/v1/openapi.json` | OpenAPI 3.1 specification |
@@ -726,10 +822,11 @@ Same three-tier key resolution applies (body `key` → `Authorization: Bearer` �
 
 | Tool | Description |
 |------|-------------|
-| `verify_address` | Verify an address with confidence score and recommendation (supports `detect_country`, `suggest`) |
+| `verify_address` | Verify an address with confidence score and recommendation (supports `detect_country`, `suggest`, `suggestion_id`) |
 | `verify_email` | Verify an email with risk level and recommendation |
 | `verify_phone` | Verify a phone number with type/carrier and recommendation |
-| `verify_contact` | Verify all fields together with overall recommendation (supports `detect_country`, `suggest`) |
+| `verify_contact` | Verify all fields together with overall recommendation (supports `detect_country`, `suggest`, `suggestion_id`) |
+| `retrieve_address` | Resolve a suggestion id to a cleansed address (consumes a credit; not a verification) |
 | `parse_address` | Parse and standardize an address via Claude (stdio mode only) |
 | `list_policies` | List available decisioning policies |
 | `show_policy` | Show details for a specific policy |
