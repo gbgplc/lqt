@@ -818,7 +818,7 @@ Same three-tier key resolution applies (body `key` â†’ `Authorization: Bearer` â
 
 ### Available Tools
 
-9 tools in stdio mode, 6 in HTTP mode (tools marked *stdio mode only* are not available over HTTP).
+10 tools in stdio mode, 7 in HTTP mode (tools marked *stdio mode only* are not available over HTTP).
 
 | Tool | Description |
 |------|-------------|
