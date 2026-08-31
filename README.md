@@ -550,7 +550,7 @@ Policies control what gets accepted, reviewed, or rejected. Every verification r
 | Policy | Addr Confidence | Match Level | Email Confidence | Phone Required | Suggest Below | Use Case |
 |--------|:-:|:-:|:-:|:-:|:-:|------|
 | **strict** | 0.90 | premise | 0.85 | yes | 0.90 | KYC, fraud prevention, regulated |
-| **shipping** | 0.70 | street | 0.50 | no | 0.85 | Physical delivery, ecommerce |
+| **shipping** | 0.85 | street | 0.50 | no | 0.85 | Physical delivery, ecommerce |
 | **standard** | 0.55 | street | 0.45 | no | 0.85 | General verification (default) |
 | **permissive** | 0.30 | locality | 0.30 | no | 0.70 | Lead capture, early funnel |
 
