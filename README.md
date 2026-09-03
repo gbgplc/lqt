@@ -543,6 +543,49 @@ Full request/response schemas are documented in the OpenAPI spec at `/v1/openapi
 
 ---
 
+
+### Explaining a result
+
+Every address verification also returns detail that explains the score without changing it:
+
+| Field | What it tells you |
+|---|---|
+| `matchscore` | 0-100, how closely the returned address resembles what you sent. Surfaced so you need not parse it out of `avc`. |
+| `coverage_level` + `coverage_level_label` | The country's maximum Loqate verification level, as a number and a name: `5` `delivery_point`, `4` `premise`, `3` `street`, `2` `locality`. The label uses the same vocabulary as `match_level`, so when the two are equal the address matched as precisely as that country's data allows. |
+| `coverage_boost` | The level shift applied because that country's data tops out below premise. This is the number that explains why a street-level match in a low-coverage country still scores highly. |
+| `changes` | What Loqate altered, in words. **Opt-in — see below.** |
+
+**To get `changes`, ask Loqate for its per-field status codes:**
+
+```bash
+lqt verify -a "125 Summer St, Boston, MA 02110, US" \
+  --option ServerOptions.FieldStatus=true -o json
+```
+
+```json
+"changes": [
+  { "field": "country_name",            "change": "added",       "value": "United States", "code": "5" },
+  { "field": "postal_code",             "change": "reformatted", "value": "02110-1634",    "code": "2" },
+  { "field": "postal_code_secondary",   "change": "added",       "value": "1634",          "code": "5" },
+  { "field": "sub_administrative_area", "change": "added",       "value": "Suffolk",       "code": "5" }
+]
+```
+
+Nothing was wrong with that address; three things were **added** (ZIP+4, county, country name) and the
+postcode was reformatted. Fields Loqate verified without touching are not listed, so a short list means
+a clean address.
+
+`change` is one of `added`, `corrected`, `reformatted` or `unrecognised`. `code` is Loqate's original
+status code, kept so the categorisation is not lossy — the codes are Loqate's own, documented at
+[docs.loqate.com/report-codes/fieldstatus](https://docs.loqate.com/report-codes/fieldstatus).
+
+Absent `changes` means you did not ask for the codes. An empty array means you asked and nothing changed.
+The option also adds a `<field>_status` key per component to `fields`, since that passthrough returns
+everything Loqate sends.
+
+This detail appears on **every** address verification — single, batch (per row), MCP and REST — because
+all four go through the same result builder.
+
 ## Policies
 
 Policies control what gets accepted, reviewed, or rejected. Every verification runs through a policy — there are no hardcoded thresholds.
