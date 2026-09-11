@@ -635,6 +635,73 @@ lqt verify -a "..." --policy-file my-policy.json
 ---
 
 ## Batch Processing
+### Batch endpoints (up to 100 records per call)
+
+`lqt batch` verifies up to 100 records in a single call — the same thing the
+`verify_*_batch` MCP tools and the `/v1/verify/*/batch` REST endpoints do.
+One record per input line, from a file or stdin:
+
+```bash
+lqt batch address --file addresses.txt --country GB
+lqt batch email   --file emails.txt --policy strict
+lqt batch phone   --file phones.txt --country GB -o table
+lqt batch contact --file contacts.json
+cat emails.txt | lqt batch email
+```
+
+`contact` is the exception to one-record-per-line: a contact has several fields,
+so it reads a JSON array — the same shape the MCP tool and REST endpoint take.
+Each contact may carry any combination of address, email and phone and gets an
+overall recommendation drawn from whichever fields were verified. The three
+types run concurrently, so a full batch is paced by email.
+
+Results come back in submission order and each carries its input `index`, so
+they can be zipped back onto rows without relying on order. **One bad record
+fails only itself** — it carries an `error` while the rest are verified — and
+the summary reports `count`, `succeeded` and `failed`.
+
+Exit codes reflect the batch, not any one record: `0` all verified, `1` some
+failed, `2` none succeeded, `3` the request never ran.
+
+Three things worth knowing:
+
+- **Addresses are grouped by country before being sent**, which is what Loqate
+  recommends. The cost is therefore one upstream call per distinct country in
+  the batch, not one per call.
+- **Email batch returns less detail** than single verification: `risk`,
+  `is_complainer_or_fraud_risk` and `reason` are absent. The accept/review/reject
+  recommendation and the disposable-mailbox flag are identical.
+- **Phone has no bulk endpoint upstream**, so numbers are checked concurrently
+  against a process-wide limit. Measured over 100 records: address ~3s,
+  phone ~2.6s, email ~7s. Email is the slowest of the three, because it probes
+  mail servers — phone is quicker than its lack of a bulk endpoint suggests.
+
+**Records without a country.** An address with no country verifies poorly — the
+same Boston address scores 0.03 without one and 0.95 with it — so `lqt batch
+address` warns when neither `--country` nor `--detect-country` is given. With
+`--detect-country`, the country is guessed per record from its address text and
+the guess is flagged in that record's result. Detection runs *before* grouping,
+so a batch spanning several countries still sends each group with its own
+default rather than one wrong default for everything.
+
+Suggestions are not available in batch, for the same reason they are not
+available with `--batch`.
+**Rate limiting on the hosted server.** Batch endpoints are charged by *record*,
+not by request — a 100-record batch costs 100 against a per-caller budget, because
+that is what it costs upstream. The default is 100 records/second with a burst of
+600, so two full contact batches run back to back and further ones are paced. A batch that
+would wait more than `--record-max-wait` (2s) is refused with `429` and a retry
+hint rather than holding the connection open. Tune with `--record-rate`,
+`--record-burst` and `--record-max-wait`, or set `--record-rate 0` to disable. The
+burst must be at least 300 or the server refuses to start: a contact is charged
+per field verified, so a full contact batch costs 300, and a smaller burst could
+never accept one. The CLI is not rate limited.
+
+For files larger than 100 records, or delimited files with named columns, use
+`lqt verify --batch <file>`, which walks any size of file row by row.
+
+### Large files with `verify --batch`
+
 
 Process files with address, email, and phone columns. Supports comma, tab, and pipe delimited input.
 
