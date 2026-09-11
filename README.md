@@ -663,6 +663,17 @@ the summary reports `count`, `succeeded` and `failed`.
 Exit codes reflect the batch, not any one record: `0` all verified, `1` some
 failed, `2` none succeeded, `3` the request never ran.
 
+**A batch record takes the same fields as a single verification.** Anything you
+can send to `verify_address` — `premise`, `thoroughfare`, `organization`,
+`sub_building`, the `address2`–`address8` and `delivery_address` lines — is
+accepted per record by `verify_address_batch`, `verify_contact_batch` and their
+REST equivalents, and is listed once as `AddressComponents` in the OpenAPI
+document. The only fields left out are the ones that mean nothing in bulk: the
+suggestion fields, and the request-level settings (`key`, `policy`, `options`,
+`detect_country`) that apply to the whole batch. `lqt batch address` reads one
+free-form address per line; to send structured columns from a file, use
+`lqt verify --batch`.
+
 Three things worth knowing:
 
 - **Addresses are grouped by country before being sent**, which is what Loqate
