@@ -712,12 +712,34 @@ per field verified, so a full contact batch costs 300, and a smaller burst could
 never accept one. The CLI is not rate limited.
 
 For files larger than 100 records, or delimited files with named columns, use
-`lqt verify --batch <file>`, which walks any size of file row by row.
+`lqt verify --batch <file>`, which walks a file of any size in chunks of 100.
 
 ### Large files with `verify --batch`
 
 
 Process files with address, email, and phone columns. Supports comma, tab, and pipe delimited input.
+
+`verify --batch` reads a file of any size and sends it through the same batch
+endpoints as `lqt batch` — up to 100 records per call, grouped by country,
+streamed in chunks so memory does not grow with the file. It used to verify one
+row per request; a 10,000-row file was 10,000 sequential round trips.
+
+Three things follow from that, none of them visible in a result:
+
+- **Rows travel together.** The upstream cost is one call per distinct country
+  per chunk of 100, not one per row.
+- **A chunk is one transaction.** The `pca-source` session id is shared by the
+  rows sent together, as it is for every other batch surface. Per-row
+  correlation was a property of sending one request per row, and no batch
+  endpoint can offer it.
+- **Email carries less detail**, exactly as it does for `lqt batch email`:
+  `risk`, `is_complainer_or_fraud_risk` and `reason` are absent, because the
+  bulk email endpoint does not return them. The accept/review/reject
+  recommendation is computed the same way.
+
+A file needs at least one address column, or an email or phone column. One bad
+row fails only itself; a whole chunk that fails upstream leaves the rest of the
+file running.
 
 ```bash
 # CSV (auto-detected)
